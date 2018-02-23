@@ -60,7 +60,7 @@ public class QuadraticLeftZeroRateCurveExtrapolatorTest {
 
       // Check C1 continuity
 //      assertEquals(bci.firstDerivative(xValues.get(0) - TOL), bci.firstDerivative(xValues.get(0)),
-//          TOL * 1.e2);  TODO need higher order
+//          Math.sqrt(TOL)); // TODO investigate this
 
       // Test sensitivity
       double[] yValues1Up = yValues[k].toArray();
