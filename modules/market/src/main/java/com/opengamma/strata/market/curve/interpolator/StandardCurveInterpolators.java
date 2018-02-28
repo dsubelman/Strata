@@ -37,7 +37,7 @@ final class StandardCurveInterpolators {
   // Natural spline interpolator.
   public static final CurveInterpolator NATURAL_SPLINE =
       NaturalSplineCurveInterpolator.INSTANCE;
-  // Product natural spline interpolator with non-negativity filter.
+  // Natural spline interpolator with non-negativity filter.
   public static final CurveInterpolator NATURAL_SPLINE_NONNEGATIVITY_CUBIC =
       NaturalSplineNonnegativityCubicCurveInterpolator.INSTANCE;
   // Product natural cubic spline interpolator.

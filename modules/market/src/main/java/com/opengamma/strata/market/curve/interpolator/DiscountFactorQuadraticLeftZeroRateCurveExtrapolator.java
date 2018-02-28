@@ -158,7 +158,7 @@ public class DiscountFactorQuadraticLeftZeroRateCurveExtrapolator
           .multipliedBy(firstXValue * firstDfValue / (xValue * df));
     }
 
-//-------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
     @Override
     public double rightExtrapolate(double xValue) {
       throw new IllegalArgumentException(

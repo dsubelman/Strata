@@ -14,7 +14,7 @@ import com.opengamma.strata.collect.array.DoubleArray;
  * <p>
  * The linear interpolation is applied discount factor values converted from the input zero rates. 
  * The gradient of the linear function is determined so that the first derivative of the discount 
- * factor is C1 continuous at the last node.
+ * factor is continuous at the last node.
  */
 public class DiscountFactorLinearRightZeroRateCurveExtrapolator
     implements CurveExtrapolator, Serializable {
@@ -92,8 +92,6 @@ public class DiscountFactorLinearRightZeroRateCurveExtrapolator
       this.rightYSens = interpolator.parameterSensitivity(lastXValue - eps).multipliedBy(-1d);
       this.coef1 = -lastYValue * lastDf - lastXValue * lastDf * rightYGradient;
       this.coef0 = lastDf - coef1 * lastXValue;
-
-      //TODO lastXValue positive
     }
 
     //-------------------------------------------------------------------------
