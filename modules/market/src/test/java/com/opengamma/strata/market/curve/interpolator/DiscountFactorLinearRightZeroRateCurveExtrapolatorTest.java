@@ -47,7 +47,7 @@ public class DiscountFactorLinearRightZeroRateCurveExtrapolatorTest {
         DiscountFactorLinearRightZeroRateCurveExtrapolator.NAME);
   }
 
-  public void testInterpolate() {
+  public void interpolateTest() {
     BoundCurveInterpolator bci = PRODUCT_LINEAR.bind(
         X_VALUES,
         Y_VALUES,
@@ -63,7 +63,7 @@ public class DiscountFactorLinearRightZeroRateCurveExtrapolatorTest {
     }
   }
 
-  public void testDerivative() {
+  public void derivativeTest() {
     BoundCurveInterpolator bci = PRODUCT_LINEAR.bind(
         X_VALUES,
         Y_VALUES,
@@ -77,7 +77,7 @@ public class DiscountFactorLinearRightZeroRateCurveExtrapolatorTest {
     }
   }
 
-  public void test_parameterSensitivity() {
+  public void parameterSensitivityTest() {
     BoundCurveInterpolator bci = PRODUCT_LINEAR.bind(
         X_VALUES,
         Y_VALUES,

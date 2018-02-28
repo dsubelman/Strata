@@ -153,7 +153,7 @@ public class DiscountFactorQuadraticLeftZeroRateCurveExtrapolatorTest {
     }
   }
 
-  public void test_limiting() {
+  public void limitingTest() {
     BoundCurveInterpolator bci = LINEAR.bind(
         X_DATA, Y_DATA, DISCOUNT_FACTOR_QUADRATIC_LEFT_ZERO_RATE, PRODUCT_LINEAR);
     double small = 1.0e-8;
@@ -170,7 +170,7 @@ public class DiscountFactorQuadraticLeftZeroRateCurveExtrapolatorTest {
         Y_DATA.get(0) * 10d * small));
   }
 
-  public void test_noRight() {
+  public void noRightTest() {
     BoundCurveInterpolator bci = LINEAR.bind(
         X_DATA,
         Y_DATA,
@@ -182,7 +182,7 @@ public class DiscountFactorQuadraticLeftZeroRateCurveExtrapolatorTest {
   }
 
   //-------------------------------------------------------------------------
-  public void test_serialization() {
+  public void serializationTest() {
     assertSerialization(DISCOUNT_FACTOR_QUADRATIC_LEFT_ZERO_RATE);
   }
 

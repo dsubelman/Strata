@@ -169,7 +169,7 @@ public class ProductNaturalSplineMonotoneCubicInterpolatorTest {
     assertEquals(INTERP.toString(), ProductNaturalSplineMonotoneCubicInterpolator.NAME);
   }
 
-  public void test_serialization() {
+  public void serializationTest() {
     assertSerialization(INTERP);
   }
 
