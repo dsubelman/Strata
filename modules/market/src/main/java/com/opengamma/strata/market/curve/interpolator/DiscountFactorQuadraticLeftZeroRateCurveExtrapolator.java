@@ -9,7 +9,6 @@ import java.io.Serializable;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.opengamma.strata.collect.DoubleArrayMath;
 import com.opengamma.strata.collect.array.DoubleArray;
 
 /**
@@ -19,7 +18,7 @@ import com.opengamma.strata.collect.array.DoubleArray;
  * factor, where the point (0,1) is inserted and
  * the first derivative value is assumed to be continuous at the first x-value.
  */
-public class QuadraticLeftZeroRateCurveExtrapolator
+public class DiscountFactorQuadraticLeftZeroRateCurveExtrapolator
     implements CurveExtrapolator, Serializable {
 
   /**
@@ -29,11 +28,12 @@ public class QuadraticLeftZeroRateCurveExtrapolator
   /**
    * The extrapolator name.
    */
-  public static final String NAME = "QuadraticLeftZeroRate";
+  public static final String NAME = "DiscountFactorQuadraticLeftZeroRate";
   /**
    * The extrapolator instance.
    */
-  public static final CurveExtrapolator INSTANCE = new QuadraticLeftZeroRateCurveExtrapolator();
+  public static final CurveExtrapolator INSTANCE =
+      new DiscountFactorQuadraticLeftZeroRateCurveExtrapolator();
   /**
    * The epsilon value.
    */
@@ -42,7 +42,7 @@ public class QuadraticLeftZeroRateCurveExtrapolator
   /**
    * Restricted constructor.
    */
-  private QuadraticLeftZeroRateCurveExtrapolator() {
+  private DiscountFactorQuadraticLeftZeroRateCurveExtrapolator() {
   }
 
   // resolve instance
@@ -76,7 +76,8 @@ public class QuadraticLeftZeroRateCurveExtrapolator
     private final int nodeCount;
     private final double firstXValue;
     private final double firstYValue;
-    private final double lastXValue;
+    private final double firstYGradient;
+    private final double firstDfValue;
     private final double eps;
     private final double leftQuadCoef;
     private final double leftLinCoef;
@@ -85,30 +86,26 @@ public class QuadraticLeftZeroRateCurveExtrapolator
     Bound(DoubleArray xValues, DoubleArray yValues, BoundCurveInterpolator interpolator) {
       this.nodeCount = xValues.size();
       this.firstXValue = xValues.get(0);
-      this.firstYValue = Math.exp(-firstXValue * yValues.get(0));
-      this.lastXValue = xValues.get(nodeCount - 1);
-      double gradient = -yValues.get(0) * firstYValue -
-          firstXValue * firstYValue * interpolator.firstDerivative(firstXValue);
-      this.eps = EPS * (lastXValue - firstXValue);
-      this.leftQuadCoef = gradient / firstXValue - (firstYValue - 1d) / firstXValue / firstXValue;
-      this.leftLinCoef = -gradient + 2d * (firstYValue - 1d) / firstXValue;
+      this.firstYValue = yValues.get(0);
+      this.firstDfValue = Math.exp(-firstXValue * firstYValue);
+      this.firstYGradient = interpolator.firstDerivative(firstXValue);
+      double gradient = -firstYValue * firstDfValue - firstXValue * firstDfValue * firstYGradient;
+      this.eps = EPS * (xValues.get(nodeCount - 1) - firstXValue);
+      this.leftQuadCoef = gradient / firstXValue - (firstDfValue - 1d) / firstXValue / firstXValue;
+      this.leftLinCoef = -gradient + 2d * (firstDfValue - 1d) / firstXValue;
       this.leftSens = Suppliers.memoize(() -> interpolator.parameterSensitivity(firstXValue + eps));
     }
 
     //-------------------------------------------------------------------------
-
-    // TODO test handling for small t
-    // TODO test cont for positive t -> negative t
-
     @Override
     public double leftExtrapolate(double xValue) {
       if (firstXValue == 0d) {
         throw new IllegalArgumentException("The trivial point at x = 0 is already included");
       }
       if (Math.abs(xValue) < eps) {
-        return -leftLinCoef + (leftQuadCoef - leftLinCoef * leftLinCoef) * xValue +
+        return -leftLinCoef - (leftQuadCoef - 0.5d * leftLinCoef * leftLinCoef) * xValue -
             xValue * xValue *
-                (leftLinCoef * leftLinCoef * leftLinCoef / 3d - 2d * leftQuadCoef * leftLinCoef);
+                (leftLinCoef * leftLinCoef * leftLinCoef / 3d - leftQuadCoef * leftLinCoef);
       }
       double df = leftQuadCoef * xValue * xValue + leftLinCoef * xValue + 1d;
       return -Math.log(df) / xValue;
@@ -120,8 +117,8 @@ public class QuadraticLeftZeroRateCurveExtrapolator
         throw new IllegalArgumentException("The trivial point at x = 0 is already included");
       }
       if (Math.abs(xValue) < eps) {
-        return leftQuadCoef - leftLinCoef * leftLinCoef + xValue *
-            (2d * leftLinCoef * leftLinCoef * leftLinCoef / 3d - 4d * leftQuadCoef * leftLinCoef);
+        return -leftQuadCoef + 0.5d * leftLinCoef * leftLinCoef - xValue *
+            (2d * leftLinCoef * leftLinCoef * leftLinCoef / 3d - 2d * leftQuadCoef * leftLinCoef);
       }
       double gradDf = 2d * leftQuadCoef * xValue + leftLinCoef;
       double df = leftQuadCoef * xValue * xValue + leftLinCoef * xValue + 1d;
@@ -133,29 +130,32 @@ public class QuadraticLeftZeroRateCurveExtrapolator
       if (firstXValue == 0d) {
         throw new IllegalArgumentException("The trivial point at x = 0 is already included");
       }
-      double[] sensiDf = leftSens.get().toArray();
+      double[] sensiZero = leftSens.get().toArray();
       double xQuad = xValue * xValue;
       if (Math.abs(xValue) < eps) {
-        double factor =
-            (2d * leftQuadCoef - leftLinCoef * leftLinCoef - 2d * leftLinCoef / firstXValue) *
-                xQuad + (2d * leftLinCoef + 1d / firstXValue) * xValue + 1d;
-        DoubleArrayMath.mutateByMultiplication(sensiDf, factor);
-        sensiDf[0] += (2d * leftLinCoef / firstXValue / firstXValue +
-            2d * leftLinCoef * leftLinCoef / firstXValue -
-            4d * leftQuadCoef / firstXValue) * xQuad -
-            (1d / firstXValue / firstXValue + 4d * leftLinCoef / firstXValue) * xValue -
-            2d / firstXValue;
-        return DoubleArray.ofUnsafe(sensiDf);
+        double coef1 = -(leftLinCoef * leftLinCoef - leftQuadCoef) * xQuad +
+            leftLinCoef * xValue - 1d;
+        double coef2 = -xValue + leftLinCoef * xQuad;
+        double factor = firstDfValue * (firstXValue * coef1 - coef2);
+        for (int i = 1; i < nodeCount; i++) {
+          sensiZero[i] *= factor / eps;
+        }
+        sensiZero[0] = (sensiZero[0] - 1d) * factor / eps;
+        sensiZero[0] += -firstDfValue * coef1 *
+            (1d + firstXValue * firstYValue + firstXValue * firstXValue * firstYGradient) +
+            firstDfValue * (firstYValue + firstXValue * firstYGradient) * coef2;
+        return DoubleArray.ofUnsafe(sensiZero);
       }
       double df = leftQuadCoef * xQuad + leftLinCoef * xValue + 1d;
+      double factor = xQuad / firstXValue - xValue;
       for (int i = 1; i < nodeCount; i++) {
-        double tmp = sensiDf[i] * xValue / eps;
-        sensiDf[i] = tmp / firstXValue * xValue - tmp;
+        sensiZero[i] *= factor / eps;
       }
-      double tmp = (sensiDf[0] - 1d) / eps;
-      sensiDf[0] = (tmp / firstXValue - 1d / firstXValue / firstXValue) * xQuad +
-          (2d / firstXValue - tmp) * xValue;
-      return DoubleArray.ofUnsafe(sensiDf).dividedBy(-xValue * df);
+      sensiZero[0] = (sensiZero[0] - 1d) * factor / eps;
+      sensiZero[0] += xValue / firstXValue -
+          (xQuad / firstXValue - xValue) * (firstYValue + firstXValue * firstYGradient);
+      return DoubleArray.ofUnsafe(sensiZero)
+          .multipliedBy(firstXValue * firstDfValue / (xValue * df));
     }
 
 //-------------------------------------------------------------------------
